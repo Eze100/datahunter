@@ -170,12 +170,11 @@ def scrap_empresas_googlemaps():
 
 
     return Response(generar_logs(), mimetype='text/event-stream')
+
 @app.route('/unificar_excel')
 def unificar_excel():
     import pandas as pd
     import glob
-    import os
-
     output_folder = os.path.abspath("output")
     all_excels = glob.glob(os.path.join(output_folder, "*.xlsx"))
 
@@ -195,48 +194,33 @@ def unificar_excel():
     final_path = os.path.join("static", "empresas_unificadas.xlsx")
     final_df.to_excel(final_path, index=False)
 
-    # 💣 Eliminar todos los excels originales una vez unificado
-    for file in all_excels:
-        try:
-            os.remove(file)
-        except Exception as e:
-            print(f"No se pudo borrar {file}: {e}")
-
     return send_from_directory('static', 'empresas_unificadas.xlsx', as_attachment=True)
 
 @app.route('/dashboard')
 @login_required
 def dashboard():
     import pandas as pd
+    import glob
     import os
     import json
     from collections import Counter
 
     usuario = session.get("usuario")
-    ruta_unificado = os.path.join("static", "empresas_unificadas.xlsx")
+    output_folder = os.path.abspath("output")
+    user_excels = glob.glob(os.path.join(output_folder, f"{usuario}_*.xlsx"))
 
     rubros = []
     zonas = []
 
-    if os.path.exists(ruta_unificado):
+    for file in user_excels:
         try:
-            df = pd.read_excel(ruta_unificado)
-
-            # Si tiene columna usuario, filtrar
-            if 'usuario' in df.columns:
-                df = df[df['usuario'] == usuario]
-
+            df = pd.read_excel(file)
             if "Rubro" in df.columns:
-                rubros = df["Rubro"].dropna().astype(str).tolist()
-
+                rubros.extend(df["Rubro"].dropna().astype(str).tolist())
             if "Zona" in df.columns:
-                zonas = df["Zona"].dropna().astype(str).tolist()
-
+                zonas.extend(df["Zona"].dropna().astype(str).tolist())
         except Exception as e:
-            print(f"Error leyendo el archivo unificado: {e}")
-            df = pd.DataFrame()
-    else:
-        df = pd.DataFrame()
+            print(f"Error analizando {file}: {e}")
 
     # Leer estados guardados por usuario
     leads_estado_path = os.path.join("leads_estado.json")
@@ -277,7 +261,7 @@ def dashboard():
                 whatsapp_enviados += 1
 
     data = {
-        "cantidad_archivos": 1 if os.path.exists(ruta_unificado) else 0,
+        "cantidad_archivos": len(user_excels),
         "total_leads": sum(estados_contados.values()),
         "rubros": Counter(rubros).most_common(10),
         "zonas": Counter(zonas).most_common(10),
