@@ -73,43 +73,25 @@ def contar_funnel():
 
     return estados_contados
 
-@app.route('/leads', methods=['GET', 'POST'])
+@app.route('/leads')
 @login_required
 def leads():
     import pandas as pd
     import os
-    import json
+    from flask import session
 
-    usuario = session.get("usuario")
-    ruta_unificada = "static/empresas_unificadas.xlsx"
-    leads_estado_path = "leads_estado.json"
+    path = "static/empresas_unificadas.xlsx"
+    if not os.path.exists(path):
+        return "<h3 style='text-align:center; margin-top:40px;'>⚠️ Todavía no hay leads cargados.<br>Hacé una búsqueda y unificá primero.<br><br><a href='/dashboard'>Volver</a></h3>"
 
-    # 1. Inicializar estructura
-    todos_los_estados = {}
-    if os.path.exists(leads_estado_path):
-        with open(leads_estado_path, 'r') as f:
-            todos_los_estados = json.load(f)
+    df = pd.read_excel(path)
+    usuario = session['usuario']
+    df = df[df["usuario"] == usuario] if "usuario" in df.columns else df
 
-    # 2. Si es POST (guardar cambios)
-    if request.method == 'POST':
-        telefono = request.form['telefono']
-        estado = request.form['estado']
-        mensaje = request.form['mensaje']
+    leads = df.to_dict(orient="records")
 
-        existente = todos_los_estados.get(telefono)
-        if existente and existente.get("usuario") != usuario:
-            return "No autorizado", 403
+    return render_template("leads.html", leads=leads)
 
-        todos_los_estados[telefono] = {
-            'estado': estado,
-            'mensaje': mensaje,
-            'usuario': usuario
-        }
-
-        with open(leads_estado_path, 'w') as f:
-            json.dump(todos_los_estados, f, indent=2)
-
-        return redirect(url_for('leads'))
 
     # 3. Si es GET (mostrar leads)
     if not os.path.exists(ruta_unificada):
@@ -315,10 +297,19 @@ def enviar_masivo():
     # GET - formulario vacío
     return render_template("enviar_masivo.html", mensaje="", telefonos=[])
 
-
 @app.route('/ver_tabla')
+@login_required
 def ver_tabla():
-    return send_from_directory('static', 'empresas_bsas_googlemaps.xlsx', as_attachment=False)
+    import os
+    import pandas as pd
+
+    ruta = "static/empresas_unificadas.xlsx"
+    if not os.path.exists(ruta):
+        return "<h3 style='text-align:center; margin-top:40px;'>⚠️ No hay Excel unificado para mostrar.<br><br><a href='/dashboard'>Volver</a></h3>"
+
+    df = pd.read_excel(ruta)
+    data = df.to_dict(orient="records")
+    return render_template("tabla.html", data=data)
 
 @app.route('/attack')
 @login_required
@@ -404,24 +395,111 @@ def funnel():
                 embudo["venta"] += 1
 
     return render_template("funnel.html", embudo=embudo)
-
-@app.route('/enviar_masivo', methods=['POST'])
-def enviar_masivo():
-    from subprocess import Popen
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    import pandas as pd
+    import glob
+    import os
     import json
-    mensaje = request.form.get("mensaje", "")
+    from collections import Counter
 
-    if not mensaje.strip():
-        return "⚠️ El mensaje no puede estar vacío."
+    usuario = session.get("usuario")
+    output_folder = os.path.abspath("output")
+    user_excels = glob.glob(os.path.join(output_folder, f"{usuario}_*.xlsx"))
 
-    # Guardar el mensaje temporalmente para que el bot lo use
-    with open("mensaje_temp.txt", "w", encoding="utf-8") as f:
-        f.write(mensaje)
+    if not user_excels:
+        return "<h3 style='text-align:center; margin-top:40px;'>⚠️ No hay archivos aún para este usuario.<br>Hacé una búsqueda primero.<br><br><a href='/buscar'>Ir a buscar</a></h3>"
 
-    # Ejecutar el bot (de forma asíncrona para no bloquear Flask)
-    Popen(["python", "static/whatsapp_bot.py"])
+    rubros = []
+    zonas = []
 
-    return "<h3 style='text-align:center; margin-top:50px;'>✅ Proceso iniciado. Revisa la consola para ver el avance.<br><br><a href='/'>Volver al Dashboard</a></h3>"
+    for file in user_excels:
+        try:
+            df = pd.read_excel(file)
+            if "Rubro" in df.columns:
+                rubros.extend(df["Rubro"].dropna().astype(str).tolist())
+            if "Zona" in df.columns:
+                zonas.extend(df["Zona"].dropna().astype(str).tolist())
+        except Exception as e:
+            print(f"Error leyendo {file}: {e}")
+
+    # Leer estados guardados por usuario
+    leads_estado_path = os.path.join("leads_estado.json")
+    estados_contados = {
+        "contactado": 0,
+        "esperando": 0,
+        "gestion": 0,
+        "venta": 0
+    }
+    whatsapp_enviados = 0
+    contactados_hoy = 0
+    ventas = 0
+    total_en_gestion = 0
+
+    if os.path.exists(leads_estado_path):
+        with open(leads_estado_path, "r") as f:
+            estados = json.load(f)
+
+        for telefono, info in estados.items():
+            if info.get("usuario") != usuario:
+                continue
+            estado = info.get("estado", "").lower()
+            mensaje = info.get("mensaje", "")
+
+            if "contactado" in estado:
+                estados_contados["contactado"] += 1
+                contactados_hoy += 1
+            elif "esperando" in estado:
+                estados_contados["esperando"] += 1
+            elif "gestion" in estado:
+                estados_contados["gestion"] += 1
+                total_en_gestion += 1
+            elif "venta" in estado:
+                estados_contados["venta"] += 1
+                ventas += 1
+
+            if mensaje.strip():
+                whatsapp_enviados += 1
+
+    data = {
+        "cantidad_archivos": len(user_excels),
+        "total_leads": sum(estados_contados.values()),
+        "rubros": Counter(rubros).most_common(10),
+        "zonas": Counter(zonas).most_common(10),
+        "whatsapp_enviados": whatsapp_enviados,
+        "contactados_hoy": contactados_hoy,
+        "ventas": ventas,
+        "total_en_gestion": total_en_gestion,
+        "funnel": estados_contados
+    }
+
+    return render_template("dashboard.html", data=data)
+
+@app.route('/enviar_masivo', methods=['GET', 'POST'])
+@login_required
+def enviar_masivo():
+    import pandas as pd
+    import os
+    import re
+
+    path = "static/empresas_unificadas.xlsx"
+
+    if request.method == 'POST':
+        mensaje = request.form.get("mensaje", "").strip()
+        if not mensaje:
+            return "Mensaje vacío", 400
+
+        if not os.path.exists(path):
+            return "<h3 style='text-align:center; margin-top:40px;'>⚠️ No hay archivo unificado.<br>Hacé búsquedas y unificá primero.<br><br><a href='/dashboard'>Volver</a></h3>"
+
+        df = pd.read_excel(path)
+        df["Teléfono"] = df["Teléfono"].astype(str).str.replace(r"\D", "", regex=True)
+        telefonos = [t for t in df["Teléfono"] if t.startswith("54") and len(t) >= 10][:50]
+
+        return render_template("enviar_masivo.html", mensaje=mensaje, telefonos=telefonos)
+
+    return render_template("enviar_masivo.html", mensaje="", telefonos=[])
 
 USERS_FILE = 'users.json'
 
