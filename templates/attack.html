@@ -65,18 +65,31 @@
 
   <script>
     function enviarTodos() {
-      const mensaje = encodeURIComponent(document.getElementById("mensaje").value);
-      const telefonos = JSON.parse(document.getElementById("telefonos").value);
+  const mensaje = encodeURIComponent(document.getElementById("mensaje").value);
+  const telefonos = JSON.parse(document.getElementById("telefonos").value);
 
-      let delay = 0;
-      telefonos.forEach(tel => {
-        setTimeout(() => {
-          const url = `https://wa.me/${tel}?text=${mensaje}`;
-          window.open(url, '_blank');
-        }, delay);
-        delay += 2000;
-      });
+  let i = 0;
+
+  function enviarSiguiente() {
+    if (i >= telefonos.length) {
+      alert("✅ Mensajes procesados.");
+      return;
     }
+
+    const tel = telefonos[i];
+    const link = `https://wa.me/${tel}?text=${mensaje}`;
+    
+    const win = window.open(link, "_blank");
+
+    setTimeout(() => {
+      win.close();  // Cerramos el tab abierto después de unos segundos
+      i++;
+      setTimeout(enviarSiguiente, 4000); // Delay entre mensajes
+    }, 8000); // Tiempo para que cargue y le dé al botón
+  }
+
+  enviarSiguiente();
+}
   </script>
   
 </body>
