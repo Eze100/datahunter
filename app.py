@@ -72,6 +72,7 @@ def contar_funnel():
             estados_contados["venta"] += 1
 
     return estados_contados
+
 @app.route('/leads', methods=['GET', 'POST'])
 @login_required
 def leads():
@@ -80,25 +81,21 @@ def leads():
     import json
 
     usuario = session.get("usuario")
-    ruta_archivo = f"output/{usuario}_leads.xlsx"
+    ruta_unificada = "static/empresas_unificadas.xlsx"
     leads_estado_path = "leads_estado.json"
 
-    # Inicializar estructura de estados
+    # 1. Inicializar estructura
     todos_los_estados = {}
-    estados = {}
-    telefonos_usuario = []
-
     if os.path.exists(leads_estado_path):
         with open(leads_estado_path, 'r') as f:
             todos_los_estados = json.load(f)
 
-    # Manejo del POST para guardar estado/mensaje
+    # 2. Si es POST (guardar cambios)
     if request.method == 'POST':
         telefono = request.form['telefono']
         estado = request.form['estado']
         mensaje = request.form['mensaje']
 
-        # Proteger sobreescritura entre usuarios
         existente = todos_los_estados.get(telefono)
         if existente and existente.get("usuario") != usuario:
             return "No autorizado", 403
@@ -114,11 +111,18 @@ def leads():
 
         return redirect(url_for('leads'))
 
-    # GET → mostrar leads filtrados
-    if not os.path.exists(ruta_archivo):
+    # 3. Si es GET (mostrar leads)
+    if not os.path.exists(ruta_unificada):
         return render_template("leads.html", leads=[], estados={})
 
-    df = pd.read_excel(ruta_archivo)
+    df = pd.read_excel(ruta_unificada)
+
+    if "usuario" not in df.columns:
+        return "El Excel no tiene columna 'usuario'."
+
+    df = df[df['usuario'] == usuario]
+
+    # Normalizar y asegurar columnas mínimas
     df.columns = df.columns.str.strip().str.lower().str.normalize('NFKD').str.encode('ascii', errors='ignore').str.decode('utf-8')
     df = df.rename(columns={
         'nombre': 'Nombre',
@@ -126,9 +130,9 @@ def leads():
         'rubro': 'Rubro'
     })
     df = df[['Nombre', 'Telefono', 'Rubro']]
+
     telefonos_usuario = df['Telefono'].astype(str).tolist()
 
-    # Filtrar estados del usuario actual
     estados = {
         tel: info for tel, info in todos_los_estados.items()
         if info.get('usuario') == usuario and tel in telefonos_usuario
@@ -154,7 +158,7 @@ def scrap_empresas_googlemaps():
                 return
 
             process = subprocess.Popen(
-                [sys.executable, script_path, zona, rubro],
+                [sys.executable, script_path, zona, rubro, session.get("usuario")],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 universal_newlines=True
@@ -172,20 +176,28 @@ def scrap_empresas_googlemaps():
     return Response(generar_logs(), mimetype='text/event-stream')
 
 @app.route('/unificar_excel')
+@login_required
 def unificar_excel():
     import pandas as pd
     import glob
+    import os
+
     output_folder = os.path.abspath("output")
     all_excels = glob.glob(os.path.join(output_folder, "*.xlsx"))
 
     if not all_excels:
-        return "No hay archivos Excel para unificar."
+        return "⚠️ No hay archivos Excel para unificar."
 
     all_dfs = []
     for file in all_excels:
         try:
             df = pd.read_excel(file)
             df["Archivo Origen"] = os.path.basename(file)
+
+            # Aseguramos columna usuario
+            if "usuario" not in df.columns:
+                df["usuario"] = session.get("usuario")
+
             all_dfs.append(df)
         except Exception as e:
             print(f"Error leyendo {file}: {e}")
@@ -194,85 +206,100 @@ def unificar_excel():
     final_path = os.path.join("static", "empresas_unificadas.xlsx")
     final_df.to_excel(final_path, index=False)
 
+    # 🔥 Eliminar archivos viejos
+    for file in all_excels:
+        try:
+            os.remove(file)
+        except Exception as e:
+            print(f"No se pudo borrar {file}: {e}")
+
     return send_from_directory('static', 'empresas_unificadas.xlsx', as_attachment=True)
 
-@app.route('/dashboard')
+@app.route('/leads', methods=['GET', 'POST'])
 @login_required
-def dashboard():
+def leads():
     import pandas as pd
-    import glob
     import os
     import json
-    from collections import Counter
 
     usuario = session.get("usuario")
-    output_folder = os.path.abspath("output")
-    user_excels = glob.glob(os.path.join(output_folder, f"{usuario}_*.xlsx"))
+    ruta_unificada = "static/empresas_unificadas.xlsx"
+    leads_estado_path = "leads_estado.json"
 
-    rubros = []
-    zonas = []
-
-    for file in user_excels:
-        try:
-            df = pd.read_excel(file)
-            if "Rubro" in df.columns:
-                rubros.extend(df["Rubro"].dropna().astype(str).tolist())
-            if "Zona" in df.columns:
-                zonas.extend(df["Zona"].dropna().astype(str).tolist())
-        except Exception as e:
-            print(f"Error analizando {file}: {e}")
-
-    # Leer estados guardados por usuario
-    leads_estado_path = os.path.join("leads_estado.json")
-    estados_contados = {
-        "contactado": 0,
-        "esperando": 0,
-        "gestion": 0,
-        "venta": 0
-    }
-    whatsapp_enviados = 0
-    contactados_hoy = 0
-    ventas = 0
-    total_en_gestion = 0
-
+    # 1. Inicializar estructura
+    todos_los_estados = {}
     if os.path.exists(leads_estado_path):
-        with open(leads_estado_path, "r") as f:
-            estados = json.load(f)
+        with open(leads_estado_path, 'r') as f:
+            todos_los_estados = json.load(f)
 
-        for telefono, info in estados.items():
-            if info.get("usuario") != usuario:
-                continue
-            estado = info.get("estado", "").lower()
-            mensaje = info.get("mensaje", "")
+    # 2. Si es POST (guardar cambios)
+    if request.method == 'POST':
+        telefono = request.form['telefono']
+        estado = request.form['estado']
+        mensaje = request.form['mensaje']
 
-            if "contactado" in estado:
-                estados_contados["contactado"] += 1
-                contactados_hoy += 1
-            elif "esperando" in estado:
-                estados_contados["esperando"] += 1
-            elif "gestion" in estado:
-                estados_contados["gestion"] += 1
-                total_en_gestion += 1
-            elif "venta" in estado:
-                estados_contados["venta"] += 1
-                ventas += 1
+        existente = todos_los_estados.get(telefono)
+        if existente and existente.get("usuario") != usuario:
+            return "No autorizado", 403
 
-            if mensaje.strip():
-                whatsapp_enviados += 1
+        todos_los_estados[telefono] = {
+            'estado': estado,
+            'mensaje': mensaje,
+            'usuario': usuario
+        }
 
-    data = {
-        "cantidad_archivos": len(user_excels),
-        "total_leads": sum(estados_contados.values()),
-        "rubros": Counter(rubros).most_common(10),
-        "zonas": Counter(zonas).most_common(10),
-        "whatsapp_enviados": whatsapp_enviados,
-        "contactados_hoy": contactados_hoy,
-        "ventas": ventas,
-        "total_en_gestion": total_en_gestion,
-        "funnel": estados_contados
+        with open(leads_estado_path, 'w') as f:
+            json.dump(todos_los_estados, f, indent=2)
+
+        return redirect(url_for('leads'))
+
+    # 3. Si es GET (mostrar leads)
+    if not os.path.exists(ruta_unificada):
+        return render_template("leads.html", leads=[], estados={})
+
+    df = pd.read_excel(ruta_unificada)
+
+    if "usuario" not in df.columns:
+        return "El Excel no tiene columna 'usuario'."
+
+    df = df[df['usuario'] == usuario]
+
+    # Normalizar y asegurar columnas mínimas
+    df.columns = df.columns.str.strip().str.lower().str.normalize('NFKD').str.encode('ascii', errors='ignore').str.decode('utf-8')
+    df = df.rename(columns={
+        'nombre': 'Nombre',
+        'telefono': 'Telefono',
+        'rubro': 'Rubro'
+    })
+    df = df[['Nombre', 'Telefono', 'Rubro']]
+
+    telefonos_usuario = df['Telefono'].astype(str).tolist()
+
+    estados = {
+        tel: info for tel, info in todos_los_estados.items()
+        if info.get('usuario') == usuario and tel in telefonos_usuario
     }
 
-    return render_template("dashboard.html", data=data)
+    leads = df.to_dict(orient='records')
+    return render_template("leads.html", leads=leads, estados=estados)
+
+@app.route('/enviar_masivo', methods=['GET', 'POST'])
+@login_required
+def enviar_masivo():
+    import pandas as pd
+
+    if request.method == 'POST':
+        mensaje = request.form.get("mensaje", "").strip()
+        if not mensaje:
+            return "Mensaje vacío", 400
+
+        df = pd.read_excel("static/empresas_unificadas.xlsx")
+        df["Teléfono"] = df["Teléfono"].astype(str).str.replace(r"\D", "", regex=True)
+        telefonos = [t for t in df["Teléfono"] if t.startswith("54") and len(t) >= 10][:50]
+
+        return render_template("enviar_masivo.html", mensaje=mensaje, telefonos=telefonos)
+
+    return render_template("enviar_masivo.html", mensaje="", telefonos=[])
 
 @app.route('/ver_tabla')
 def ver_tabla():
@@ -347,7 +374,10 @@ def funnel():
         with open(path_json) as f:
             estados = json.load(f)
 
+        usuario = session.get("usuario")
         for info in estados.values():
+            if info.get("usuario") != usuario:
+                continue
             estado = info.get("estado", "").lower()
             if "contactado" in estado:
                 embudo["contactado"] += 1

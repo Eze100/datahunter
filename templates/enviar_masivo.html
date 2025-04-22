@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>WhatsApp Masivo</title>
+  <script>
+    function enviarTodos() {
+      const mensaje = encodeURIComponent(document.getElementById("mensaje").value);
+      const telefonos = JSON.parse(document.getElementById("telefonos").value);
+
+      let delay = 0;
+      telefonos.forEach(tel => {
+        setTimeout(() => {
+          const url = `https://wa.me/${tel}?text=${mensaje}`;
+          window.open(url, '_blank');
+        }, delay);
+        delay += 2000;
+      });
+    }
+  </script>
+</head>
+<body style="font-family:sans-serif; text-align:center; padding:30px;">
+  <h2>Enviar WhatsApp Masivo</h2>
+  <form method="POST">
+    <textarea id="mensaje" name="mensaje" rows="5" cols="60" placeholder="Escribí el mensaje...">{{ mensaje }}</textarea><br><br>
+    <input type="submit" value="Cargar teléfonos">
+  </form>
+
+  {% if telefonos %}
+  <hr>
+  <p>Se encontraron {{ telefonos|length }} teléfonos válidos</p>
+  <input type="hidden" id="telefonos" value='{{ telefonos|tojson }}'>
+  <button onclick="enviarTodos()">📤 Enviar todos por WhatsApp</button>
+  {% endif %}
+</body>
+</html>

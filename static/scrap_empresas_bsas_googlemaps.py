@@ -6,12 +6,13 @@ import os
 
 API_KEY = "AIzaSyB3co_SwDrCoqJdbbJqWYyyOIz2EDxytLk"
 
-if len(sys.argv) < 3:
-    print("Faltan argumentos: zona y rubro")
+if len(sys.argv) < 4:
+    print("Faltan argumentos: zona, rubro y usuario")
     sys.exit(1)
 
 zona = sys.argv[1]
 rubro = sys.argv[2]
+usuario = sys.argv[3]
 
 def buscar_google_maps(query, localidad, max_results=50):
     url_base = "https://maps.googleapis.com/maps/api/place/textsearch/json"
@@ -72,5 +73,6 @@ nombre_archivo = f"{rubro.strip().lower().replace(' ', '_')}_{zona.strip().lower
 output_path = f"output/{nombre_archivo}"
 
 df = pd.DataFrame(datos)
+df['usuario'] = usuario
 df.to_excel(output_path, index=False)
 print(f"Archivo guardado en: {output_path}")

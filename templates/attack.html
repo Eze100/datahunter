@@ -42,13 +42,20 @@
       <form method="POST" action="/enviar_masivo">
         <div class="mb-4">
           <label class="form-label">Mensaje a enviar:</label>
-          <textarea name="mensaje" class="form-control" placeholder="Ejemplo: Hola! Mi nombre es Ezequiel, soy desarrollador de software y quería ofrecerte..."></textarea>
+          <textarea id="mensaje" name="mensaje" class="form-control" rows="5" placeholder="Ejemplo: Hola! Mi nombre es Ezequiel, soy desarrollador de software y quería ofrecerte...">{{ mensaje }}</textarea>
         </div>
-
+    
         <div class="text-center">
-          <button type="submit" class="btn btn-success btn-lg"><i class="fab fa-whatsapp"></i> Enviar a Todos</button>
+          <button type="submit" class="btn btn-success btn-lg"><i class="fab fa-whatsapp"></i> Cargar Teléfonos</button>
         </div>
       </form>
+      {% if telefonos %}
+        <hr>
+        <p><strong>📞 Se encontraron {{ telefonos|length }} teléfonos válidos</strong></p>
+        <input type="hidden" id="telefonos" value='{{ telefonos|tojson }}'>
+        <button onclick="enviarTodos()" class="btn btn-primary btn-lg mt-3">📤 Enviar Todos por WhatsApp</button>
+      {% endif %}
+
     </div>
   </div>
 
