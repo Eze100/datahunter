@@ -65,32 +65,40 @@
 
   <script>
     function enviarTodos() {
-  const mensaje = encodeURIComponent(document.getElementById("mensaje").value);
-  const telefonos = JSON.parse(document.getElementById("telefonos").value);
-
-  let i = 0;
-
-  function enviarSiguiente() {
-    if (i >= telefonos.length) {
-      alert("✅ Mensajes procesados.");
-      return;
+      const mensaje = encodeURIComponent(document.getElementById("mensaje").value);
+      const telefonos = JSON.parse(document.getElementById("telefonos").value);
+  
+      let i = 0;
+      let procesando = true;
+  
+      function enviarSiguiente() {
+        if (!procesando) return;
+  
+        if (i >= telefonos.length) {
+          alert("✅ Mensajes procesados.");
+          return;
+        }
+  
+        const tel = telefonos[i];
+        const link = `https://wa.me/${tel}?text=${mensaje}`;
+        const win = window.open(link, "_blank");
+  
+        const msg = `🟢 Abriendo ${tel}. Espera a que cargue, haz clic en "Ir al chat" y luego en "Usar WhatsApp Web" si es necesario.`;
+  
+        console.log(msg);
+        document.title = `Enviando a ${tel}`;
+  
+        setTimeout(() => {
+          win.close();
+          i++;
+          setTimeout(enviarSiguiente, 6000); // Delay entre chats
+        }, 9000); // Tiempo para abrir y procesar
+      }
+  
+      enviarSiguiente();
     }
-
-    const tel = telefonos[i];
-    const link = `https://wa.me/${tel}?text=${mensaje}`;
-    
-    const win = window.open(link, "_blank");
-
-    setTimeout(() => {
-      win.close();  // Cerramos el tab abierto después de unos segundos
-      i++;
-      setTimeout(enviarSiguiente, 4000); // Delay entre mensajes
-    }, 8000); // Tiempo para que cargue y le dé al botón
-  }
-
-  enviarSiguiente();
-}
   </script>
+  
   
 </body>
 </html>
