@@ -6,13 +6,12 @@ import os
 
 API_KEY = "AIzaSyB3co_SwDrCoqJdbbJqWYyyOIz2EDxytLk"
 
-if len(sys.argv) < 4:
-    print("Faltan argumentos: zona, rubro y usuario")
+if len(sys.argv) < 3:
+    print("Faltan argumentos: zona y rubro")
     sys.exit(1)
 
 zona = sys.argv[1]
 rubro = sys.argv[2]
-usuario = sys.argv[3]
 
 def buscar_google_maps(query, localidad, max_results=50):
     url_base = "https://maps.googleapis.com/maps/api/place/textsearch/json"
@@ -56,23 +55,22 @@ def buscar_google_maps(query, localidad, max_results=50):
             "Web": web,
             "Correo": correo,
             "Rubro": query,
-            "Zona": localidad,
-            "usuario": usuario
+            "Zona": localidad
         })
         time.sleep(0.4)
 
     return leads
 
-print(f"🔍 Buscando '{rubro}' en {zona} para usuario '{usuario}'...")
+print(f"Buscando '{rubro}' en {zona}...")
 datos = buscar_google_maps(rubro, zona)
 
 # Crear carpeta output si no existe
 os.makedirs("output", exist_ok=True)
 
-# Guardar como archivo único
+# Formatear nombre del archivo: rubro_zona.xlsx
 nombre_archivo = f"{rubro.strip().lower().replace(' ', '_')}_{zona.strip().lower().replace(' ', '_')}.xlsx"
 output_path = f"output/{nombre_archivo}"
 
 df = pd.DataFrame(datos)
 df.to_excel(output_path, index=False)
-print(f"✅ Archivo guardado en: {output_path}")
+print(f"Archivo guardado en: {output_path}")
