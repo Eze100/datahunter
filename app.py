@@ -83,6 +83,25 @@ def leads():
     })
     df = df[['Nombre', 'Telefono', 'Rubro']]
 
+    # Cargar estados de leads y filtrar por usuario actual
+    estados = {}
+    telefonos_usuario = []
+
+    if os.path.exists('leads_estado.json'):
+        with open('leads_estado.json', 'r') as f:
+            todos_los_estados = json.load(f)
+            estados = {
+                tel: info for tel, info in todos_los_estados.items()
+                if info.get('usuario') == session['usuario']
+            }
+            telefonos_usuario = list(estados.keys())
+
+        # Filtrar los leads que pertenecen al usuario actual
+        df = df[df['Telefono'].astype(str).isin(telefonos_usuario)]
+    else:
+        todos_los_estados = {}
+
+
     # Cargar estados y filtrar por usuario actual
     estados = {}
     if os.path.exists('leads_estado.json'):
