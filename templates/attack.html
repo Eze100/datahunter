@@ -58,6 +58,21 @@
 
     </div>
   </div>
-
+  <script>
+    function enviarTodos() {
+      const mensaje = encodeURIComponent(document.getElementById("mensaje").value);
+      const telefonos = JSON.parse(document.getElementById("telefonos").value);
+  
+      let delay = 0;
+      telefonos.forEach(tel => {
+        setTimeout(() => {
+          const url = `https://wa.me/${tel}?text=${mensaje}`;
+          window.open(url, '_blank');
+        }, delay);
+        delay += 2000;
+      });
+    }
+  </script>
+  
 </body>
 </html>

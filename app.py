@@ -102,6 +102,7 @@ def ver_leads():
 def scrap_empresas_googlemaps():
     zona = request.args.get("zona")
     rubro = request.args.get("rubro")
+    usuario = session.get("usuario")  # EXTRAEMOS FUERA DEL GENERATOR
 
     def generar_logs():
         try:
@@ -111,7 +112,7 @@ def scrap_empresas_googlemaps():
                 return
 
             process = subprocess.Popen(
-                [sys.executable, script_path, zona, rubro, session.get("usuario")],
+                [sys.executable, script_path, zona, rubro, usuario],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 universal_newlines=True
