@@ -287,19 +287,34 @@ def leads():
 @login_required
 def enviar_masivo():
     import pandas as pd
+    import os
+    import re
+
+    ruta_excel = "static/empresas_unificadas.xlsx"
 
     if request.method == 'POST':
         mensaje = request.form.get("mensaje", "").strip()
         if not mensaje:
             return "Mensaje vacío", 400
 
-        df = pd.read_excel("static/empresas_unificadas.xlsx")
+        # Verificamos si el archivo existe antes de leerlo
+        if not os.path.exists(ruta_excel):
+            return "<h3 style='text-align:center; margin-top:50px;'>⚠️ No hay archivo unificado aún.<br>Primero generá leads y unificá el Excel.<br><br><a href='/dashboard'>Volver al Dashboard</a></h3>"
+
+        df = pd.read_excel(ruta_excel)
+
+        # Aseguramos columna "Teléfono" y limpieza
+        if "Teléfono" not in df.columns:
+            return "⚠️ El Excel no tiene columna 'Teléfono'."
+
         df["Teléfono"] = df["Teléfono"].astype(str).str.replace(r"\D", "", regex=True)
         telefonos = [t for t in df["Teléfono"] if t.startswith("54") and len(t) >= 10][:50]
 
         return render_template("enviar_masivo.html", mensaje=mensaje, telefonos=telefonos)
 
+    # GET - formulario vacío
     return render_template("enviar_masivo.html", mensaje="", telefonos=[])
+
 
 @app.route('/ver_tabla')
 def ver_tabla():
