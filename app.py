@@ -44,7 +44,7 @@ def buscar():
     return render_template('buscar.html')
 
 def contar_funnel():
-    # Cargar estado de leads desde JSON
+    usuario = session.get("usuario")
     if os.path.exists('leads_estado.json'):
         with open('leads_estado.json') as f:
             estados = json.load(f)
@@ -59,6 +59,8 @@ def contar_funnel():
     }
 
     for data in estados.values():
+        if data.get("usuario") != usuario:
+            continue
         estado = data.get("estado", "").lower()
         if "contactado" in estado:
             estados_contados["contactado"] += 1
@@ -73,8 +75,50 @@ def contar_funnel():
 @app.route('/leads', methods=['GET', 'POST'])
 @login_required
 def leads():
-    # Leer los leads
-    df = pd.read_excel('output/empresas_unificadas.xlsx')
+    import pandas as pd
+    import os
+    import json
+
+    usuario = session.get("usuario")
+    ruta_archivo = f"output/{usuario}_leads.xlsx"
+    leads_estado_path = "leads_estado.json"
+
+    # Inicializar estructura de estados
+    todos_los_estados = {}
+    estados = {}
+    telefonos_usuario = []
+
+    if os.path.exists(leads_estado_path):
+        with open(leads_estado_path, 'r') as f:
+            todos_los_estados = json.load(f)
+
+    # Manejo del POST para guardar estado/mensaje
+    if request.method == 'POST':
+        telefono = request.form['telefono']
+        estado = request.form['estado']
+        mensaje = request.form['mensaje']
+
+        # Proteger sobreescritura entre usuarios
+        existente = todos_los_estados.get(telefono)
+        if existente and existente.get("usuario") != usuario:
+            return "No autorizado", 403
+
+        todos_los_estados[telefono] = {
+            'estado': estado,
+            'mensaje': mensaje,
+            'usuario': usuario
+        }
+
+        with open(leads_estado_path, 'w') as f:
+            json.dump(todos_los_estados, f, indent=2)
+
+        return redirect(url_for('leads'))
+
+    # GET → mostrar leads filtrados
+    if not os.path.exists(ruta_archivo):
+        return render_template("leads.html", leads=[], estados={})
+
+    df = pd.read_excel(ruta_archivo)
     df.columns = df.columns.str.strip().str.lower().str.normalize('NFKD').str.encode('ascii', errors='ignore').str.decode('utf-8')
     df = df.rename(columns={
         'nombre': 'Nombre',
@@ -82,55 +126,16 @@ def leads():
         'rubro': 'Rubro'
     })
     df = df[['Nombre', 'Telefono', 'Rubro']]
+    telefonos_usuario = df['Telefono'].astype(str).tolist()
 
-    # Cargar estados de leads y filtrar por usuario actual
-    estados = {}
-    telefonos_usuario = []
+    # Filtrar estados del usuario actual
+    estados = {
+        tel: info for tel, info in todos_los_estados.items()
+        if info.get('usuario') == usuario and tel in telefonos_usuario
+    }
 
-    if os.path.exists('leads_estado.json'):
-        with open('leads_estado.json', 'r') as f:
-            todos_los_estados = json.load(f)
-            estados = {
-                tel: info for tel, info in todos_los_estados.items()
-                if info.get('usuario') == session['usuario']
-            }
-            telefonos_usuario = list(estados.keys())
-
-        # Filtrar los leads que pertenecen al usuario actual
-        df = df[df['Telefono'].astype(str).isin(telefonos_usuario)]
-    else:
-        todos_los_estados = {}
-
-
-    # Cargar estados y filtrar por usuario actual
-    estados = {}
-    if os.path.exists('leads_estado.json'):
-        with open('leads_estado.json', 'r') as f:
-            todos_los_estados = json.load(f)
-            estados = {
-                tel: info for tel, info in todos_los_estados.items()
-                if info.get('usuario') == session['usuario']
-            }
-    else:
-        todos_los_estados = {}
-
-    if request.method == 'POST':
-        telefono = request.form['telefono']
-        estado = request.form['estado']
-        mensaje = request.form['mensaje']
-
-        todos_los_estados[telefono] = {
-            'estado': estado,
-            'mensaje': mensaje,
-            'usuario': session['usuario']
-        }
-
-        with open('leads_estado.json', 'w') as f:
-            json.dump(todos_los_estados, f, indent=2)
-
-        return redirect(url_for('leads'))
-
-    return render_template('leads.html', leads=df.to_dict(orient='records'), estados=estados)
+    leads = df.to_dict(orient='records')
+    return render_template("leads.html", leads=leads, estados=estados)
 
 @app.route('/scrap_empresas_googlemaps')
 def scrap_empresas_googlemaps():
@@ -200,18 +205,20 @@ def dashboard():
     import json
     from collections import Counter
 
+    usuario = session.get("usuario")
     output_folder = os.path.abspath("output")
-    all_excels = glob.glob(os.path.join(output_folder, "*.xlsx"))
+    user_excels = glob.glob(os.path.join(output_folder, f"{usuario}_*.xlsx"))
 
-    total_leads = 0
     rubros = []
     zonas = []
 
-    for file in all_excels:
+    for file in user_excels:
         try:
             df = pd.read_excel(file)
-            rubros.extend(df["Rubro"].dropna().astype(str).tolist())
-            zonas.extend(df["Zona"].dropna().astype(str).tolist())
+            if "Rubro" in df.columns:
+                rubros.extend(df["Rubro"].dropna().astype(str).tolist())
+            if "Zona" in df.columns:
+                zonas.extend(df["Zona"].dropna().astype(str).tolist())
         except Exception as e:
             print(f"Error analizando {file}: {e}")
 
@@ -233,7 +240,7 @@ def dashboard():
             estados = json.load(f)
 
         for telefono, info in estados.items():
-            if info.get("usuario") != session['usuario']:
+            if info.get("usuario") != usuario:
                 continue
             estado = info.get("estado", "").lower()
             mensaje = info.get("mensaje", "")
@@ -254,8 +261,8 @@ def dashboard():
                 whatsapp_enviados += 1
 
     data = {
-        "cantidad_archivos": len(all_excels),
-        "total_leads": estados_contados['contactado'] + estados_contados['esperando'] + estados_contados['gestion'] + estados_contados['venta'],
+        "cantidad_archivos": len(user_excels),
+        "total_leads": sum(estados_contados.values()),
         "rubros": Counter(rubros).most_common(10),
         "zonas": Counter(zonas).most_common(10),
         "whatsapp_enviados": whatsapp_enviados,
