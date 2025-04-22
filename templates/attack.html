@@ -49,20 +49,25 @@
           <button type="submit" class="btn btn-success btn-lg"><i class="fab fa-whatsapp"></i> Cargar Teléfonos</button>
         </div>
       </form>
+
       {% if telefonos %}
         <hr>
-        <p><strong>📞 Se encontraron {{ telefonos|length }} teléfonos válidos</strong></p>
-        <input type="hidden" id="telefonos" value='{{ telefonos|tojson }}'>
-        <button onclick="enviarTodos()" class="btn btn-primary btn-lg mt-3">📤 Enviar Todos por WhatsApp</button>
+        <div class="text-center">
+          <p><strong>📞 Se encontraron {{ telefonos|length }} teléfonos válidos</strong></p>
+          <input type="hidden" id="telefonos" value='{{ telefonos|tojson }}'>
+          <button onclick="enviarTodos()" class="btn btn-primary btn-lg mt-3">
+            📤 Enviar Todos por WhatsApp
+          </button>
+        </div>
       {% endif %}
-
     </div>
   </div>
+
   <script>
     function enviarTodos() {
       const mensaje = encodeURIComponent(document.getElementById("mensaje").value);
       const telefonos = JSON.parse(document.getElementById("telefonos").value);
-  
+
       let delay = 0;
       telefonos.forEach(tel => {
         setTimeout(() => {

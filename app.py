@@ -167,21 +167,32 @@ def enviar_masivo():
     import re
 
     path = "static/empresas_unificadas.xlsx"
+    usuario = session.get("usuario")
+
+    if not os.path.exists(path):
+        return "<h3 style='text-align:center; margin-top:40px;'>⚠️ No hay archivo unificado.<br>Hacé búsquedas y unificá primero.<br><br><a href='/dashboard'>Volver</a></h3>"
+
+    df = pd.read_excel(path)
+
+    # Filtrar por usuario si la columna existe
+    if "usuario" in df.columns:
+        df = df[df["usuario"] == usuario]
+
+    # Limpiar columna Teléfono
+    if "Teléfono" not in df.columns:
+        return "⚠️ El Excel no tiene columna 'Teléfono'."
+
+    df["Teléfono"] = df["Teléfono"].astype(str).str.replace(r"\D", "", regex=True)
+    telefonos = [t for t in df["Teléfono"] if t.startswith("54") and len(t) >= 10]
+
     if request.method == 'POST':
         mensaje = request.form.get("mensaje", "").strip()
         if not mensaje:
             return "Mensaje vacío", 400
 
-        if not os.path.exists(path):
-            return "<h3 style='text-align:center; margin-top:40px;'>⚠️ No hay archivo unificado.<br>Hacé búsquedas y unificá primero.<br><br><a href='/dashboard'>Volver</a></h3>"
+        return render_template("attack.html", mensaje=mensaje, telefonos=telefonos[:50])
 
-        df = pd.read_excel(path)
-        df["Teléfono"] = df["Teléfono"].astype(str).str.replace(r"\D", "", regex=True)
-        telefonos = [t for t in df["Teléfono"] if t.startswith("54") and len(t) >= 10][:50]
-
-        return render_template("enviar_masivo.html", mensaje=mensaje, telefonos=telefonos)
-
-    return render_template("enviar_masivo.html", mensaje="", telefonos=[])
+    return render_template("attack.html", mensaje="", telefonos=telefonos[:50])
 
 @app.route('/ver_tabla')
 @login_required
