@@ -1,14 +1,10 @@
 {
-  "Ezequielmartino3279@gmail.com": {
-    "password": "15042002",
-    "rol": "vendedor"
+  "ezequiel@sisapp.dev": {
+    "password": "1234",
+    "rol": "admin"
   },
-  "ezequielortonav@gmail.com": {
-    "password": "ezequiel1504",
-    "rol": "vendedor"
-  },
-  "camila.arriola@gmail.com": {
-    "password": "Camila1234",
+  "camila@ventas.com": {
+    "password": "1234",
     "rol": "vendedor"
   }
 }
