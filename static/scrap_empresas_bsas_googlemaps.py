@@ -56,23 +56,23 @@ def buscar_google_maps(query, localidad, max_results=50):
             "Web": web,
             "Correo": correo,
             "Rubro": query,
-            "Zona": localidad
+            "Zona": localidad,
+            "usuario": usuario
         })
         time.sleep(0.4)
 
     return leads
 
-print(f"Buscando '{rubro}' en {zona}...")
+print(f"🔍 Buscando '{rubro}' en '{zona}' para el usuario '{usuario}'...")
 datos = buscar_google_maps(rubro, zona)
 
 # Crear carpeta output si no existe
 os.makedirs("output", exist_ok=True)
 
-# Formatear nombre del archivo: rubro_zona.xlsx
-nombre_archivo = f"{rubro.strip().lower().replace(' ', '_')}_{zona.strip().lower().replace(' ', '_')}.xlsx"
+# Nombre del archivo: usuario_rubro_zona.xlsx
+nombre_archivo = f"{usuario}_{rubro.strip().lower().replace(' ', '_')}_{zona.strip().lower().replace(' ', '_')}.xlsx"
 output_path = f"output/{nombre_archivo}"
 
 df = pd.DataFrame(datos)
-df['usuario'] = usuario
 df.to_excel(output_path, index=False)
-print(f"Archivo guardado en: {output_path}")
+print(f"✅ Archivo guardado en: {output_path}")
