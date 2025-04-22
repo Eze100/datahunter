@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard - DataHunter</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://kit.fontawesome.com/a2e0e6ad54.js" crossorigin="anonymous"></script>
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+    .navbar-brand {
+      font-weight: bold;
+    }
+    .stat-card {
+      border-radius: 15px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: bold;
+    }
+    .chart-container {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 30px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 🔷 NAVBAR -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+    <div class="container">
+      <a class="navbar-brand" href="/">DataHunter PRO</a>
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <a class="nav-link text-white" href="/buscar"><i class="fas fa-search-location"></i> Buscar Leads</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-white" href="/attack"><i class="fas fa-bullhorn"></i> Contacto Masivo</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-white" href="/leads"><i class="fas fa-address-book"></i> Leads</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-white" href="/dashboard"><i class="fas fa-chart-line"></i> Dashboard</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-white" href="/mensajes"><i class="fas fa-pen-nib"></i> Mensajes</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-white" href="/funnel"><i class="fas fa-filter"></i> Embudo</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-white" href="/productos"><i class="fas fa-box-open"></i> Productos</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+  
+
+
+  <div class="container">
+
+    <!-- 🔢 ESTADÍSTICAS -->
+    <div class="row mb-4">
+      <div class="col-md-6">
+        <div class="card stat-card text-center p-4">
+          <h5><i class="fas fa-sync-alt text-primary"></i> Búsquedas Realizadas</h5>
+          <div class="stat-number text-primary">{{ data.cantidad_archivos }}</div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card stat-card text-center p-4">
+          <h5><i class="fas fa-users text-success"></i> Leads Extraídos</h5>
+          <div class="stat-number text-success">{{ data.total_leads }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mb-4">
+      <div class="col-md-3">
+        <div class="card stat-card text-center p-3">
+          <h6><i class="fas fa-comments text-info"></i> WhatsApps enviados hoy</h6>
+          <div class="stat-number text-info">{{ data.whatsapp_enviados }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card stat-card text-center p-3">
+          <h6><i class="fas fa-user-check text-warning"></i> Contactados hoy</h6>
+          <div class="stat-number text-warning">{{ data.contactados_hoy }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card stat-card text-center p-3">
+          <h6><i class="fas fa-handshake text-primary"></i> Ventas cerradas</h6>
+          <div class="stat-number text-primary">{{ data.ventas }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card stat-card text-center p-3">
+          <h6><i class="fas fa-filter text-success"></i> Total Leads en Gestión</h6>
+          <div class="stat-number text-success">{{ data.total_en_gestion }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mt-4">
+      <div class="col-12 chart-container">
+        <h5 class="text-center">Embudo de Ventas</h5>
+        <canvas id="funnelChart"></canvas>
+      </div>
+    </div>
+
+    <!-- 🔝 RUBROS / ZONAS -->
+    <div class="row mt-4">
+      <div class="col-md-6">
+        <div class="card shadow p-3">
+          <h5 class="text-primary"><i class="fas fa-tags"></i> Rubros más buscados</h5>
+          <ul class="list-group">
+            {% for rubro, cantidad in data.rubros %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              {{ rubro }}
+              <span class="badge bg-primary">{{ cantidad }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card shadow p-3">
+          <h5 class="text-success"><i class="fas fa-map-marked-alt"></i> Zonas más frecuentes</h5>
+          <ul class="list-group">
+            {% for zona, cantidad in data.zonas %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              {{ zona }}
+              <span class="badge bg-success">{{ cantidad }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+    
+    <script>
+      const funnelData = {
+        labels: ['Contactado', 'Esperando respuesta', 'En gestión', 'Venta'],
+        datasets: [{
+          label: 'Leads por estado',
+          data: [
+            {{ data.funnel.contactado }},
+            {{ data.funnel.esperando }},
+            {{ data.funnel.gestion }},
+            {{ data.funnel.venta }}
+          ],
+          backgroundColor: ['#0dcaf0', '#ffc107', '#0d6efd', '#198754']
+        }]
+      };
+    
+      new Chart(document.getElementById('funnelChart'), {
+        type: 'bar',
+        data: funnelData,
+        options: {
+          responsive: true,
+          indexAxis: 'y'
+        }
+      });
+    </script>
+    
+
+    
+
+  </div>
+
+  <!-- 🔄 CARGAR DATOS CHART.JS -->
+  <script>
+    const rubrosData = {
+      labels: {{ data.rubros | map(attribute=0) | list | tojson }},
+      datasets: [{
+        label: 'Cantidad',
+        data: {{ data.rubros | map(attribute=1) | list | tojson }},
+        backgroundColor: '#007bff'
+      }]
+    };
+
+    const zonasData = {
+      labels: {{ data.zonas | map(attribute=0) | list | tojson }},
+      datasets: [{
+        label: 'Cantidad',
+        data: {{ data.zonas | map(attribute=1) | list | tojson }},
+        backgroundColor: '#28a745'
+      }]
+    };
+
+    new Chart(document.getElementById('rubrosChart'), {
+      type: 'bar',
+      data: rubrosData,
+      options: { responsive: true }
+    });
+
+    new Chart(document.getElementById('zonasChart'), {
+      type: 'bar',
+      data: zonasData,
+      options: { responsive: true }
+    });
+  </script>
+
+</body>
+</html>

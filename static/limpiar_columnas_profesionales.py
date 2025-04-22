@@ -1,0 +1,50 @@
+import os
+import csv
+import random
+
+carpeta = "."  # Usa "." si el script está en la misma carpeta que los CSV
+
+nombres_femeninos = ["Emily", "Sophie", "Olivia", "Isabella", "Emma", "Chloe", "Lily", "Grace", "Ava", "Zoe"]
+nombres_masculinos = ["Philip", "Stephen", "Gregory", "Tony", "Isaiah", "Cynthia", "Dennis", "Christina", "Mandy", "Tiffany", "Emily", "Jessica", "Joshua", "Ashley", "Tyler", "Andrew", "Nicole", "Brittany", "Brian", "Amanda", "Kevin", "Rachel", "Jason", "Samantha", "Jacob", "Rebecca", "Zachary", "Lauren", "Nicholas", "Victoria", "Brandon", "Kayla", "Austin", "Amber", "Justin", "Courtney", "Eric", "Danielle", "Adam", "Hannah", "Sean", "Melissa", "Kyle", "Kelsey", "Ryan", "Michelle", "Jonathan", "Morgan", "Joseph", "Erin", "Alex", "Natalie", "Ethan", "Sara", "Patrick", "Katie", "Mark", "Alyssa", "Steven", "Kaitlyn", "Cameron", "Allison", "Dylan", "Haley", "Connor", "Maria", "Nathan", "Julia", "Aaron", "Brooke", "Samuel", "Jordan", "Christian", "Shelby", "Benjamin", "Kristen", "Noah", "Megan", "Shawn", "Andrea", "Blake", "Jenna", "Trevor", "Paige", "Jared", "Vanessa", "Chad", "Kathryn", "Cody", "Abigail", "Ian", "Brianna", "Gabriel", "Chelsea", "Hunter", "Alexis", "Lucas", "Lindsey", "Derek", "Katherine", "Mason", "Laura", "Owen", "Madison", "Antonio", "Sabrina", "Xavier", "Monica", "Miles", "Tara", "Joel", "April", "George", "Marissa", "Peter", "Caitlin", "Grant", "Erica", "Tristan", "Brenda", "Jeffrey", "Hailey", "Caleb", "Nancy", "Seth", "Molly", "Shane", "Angela", "Raymond", "Meghan", "Colin", "Kristina", "Dustin", "Melanie", "Micah", "Kathleen", "Troy", "Jillian", "Garrett", "Gabrielle", "Spencer", "Caroline", "Mitchell", "Tina", "Brett", "Valerie", "Zane", "Kara", "Logan", "Tanya", "Victor", "Claire", "Bryce", "Jamie", "Wesley", "Bethany", "Ross", "Dana", "Clayton", "Leslie", "Preston", "Stacy", "Reed", "Tessa", "Jake", "Autumn", "Vincent", "Holly", "Damian", "Deanna", "Riley", "Jocelyn", "Ty", "Kristy", "Andre", "Renee", "Travis", "Alison", "Max", "Angelica", "Lee", "Joanna", "Andy", "Miranda", "Simon", "Desiree", "Brady", "Rose", "Karl", "Ann", "Marco", "Candace", "Terrance", "Denise", "Dominic", "Gina", "Jeremiah", "Yvonne", "Ronnie", "Casey", "Aidan", "Tracy", "Donovan", "Gloria", "Alvin", "Felicia", "Warren", "Joanne", "Randall", "Diana", "Douglas", "Tami", "Clinton", "Sherry", "Harvey", "Carmen", "Franklin", "Joyce", "Bruce", "Carol", "Gilbert", "Jean", "Howard", "Bonnie", "Leo", "Wendy", "Francis", "Darlene", "Terrence", "Sylvia", "Neil", "Christy", "Lance", "Toni", "Norman", "Charlotte", "Eugene", "Lori", "Frederick", "Marilyn", "Glen", "Tricia", "Kent", "Shari", "Marshall", "Debbie", "Melvin", "Belinda", "Ralph", "Elaine", "Stuart", "Edith", "Ivan", "Maureen", "Earl", "Patty", "Kirk", "Colleen", "Lloyd", "Shannon", "Clifford", "Lorraine", "Wendell", "Tasha", "Jerome", "Robyn", "Leonard", "Elaine", "Darrell", "Gretchen", "Clarence", "Marcia", "Ted", "Kelley", "Vernon", "Carla", "Alfred", "Rhonda", "Edgar", "Carrie", "Rudy", "Dianne", "Terrence", "Suzanne", "Milton", "Rita"]
+
+rubros_femeninos = ["makeup artist", "nail technician", "massage therapist", "house cleaner", "event planner", "private chef"]
+rubros_masculinos = ["tattoo artist", "barber", "plumber", "electrician", "mobile mechanic", "handyman", "DJ", "personal trainer"]
+
+def tiene_nombre_real(nombre):
+    partes = nombre.strip().split()
+    return len(partes) == 2 and all(p[0].isupper() for p in partes)
+
+def generar_nombre_ficticio(rubro):
+    if rubro.lower() in rubros_femeninos:
+        return random.choice(nombres_femeninos) + " " + random.choice(["Little", "Gregory", "Williamson", "Harmon", "Huang", "Burns", "Dennis", "Roberts", "Beck", "Schmidt", "Turner", "Reed", "Hayes", "Hicks", "Crawford", "Henry", "Mason", "Gordon", "Graham", "Foster", "Wallace", "Griffin", "Russell", "Peters", "Hamilton", "Reynolds", "Fisher", "Ellis", "Harrison", "Gibson", "McDonald", "Cruz", "Marshall", "Ortiz", "Gomez", "Murray", "Freeman", "Wells", "Webb", "Simpson", "Stevens", "Tucker", "Porter", "Hunter", "Hicks", "Crawford", "Boyd", "Mason", "Morales", "Kennedy", "Warren", "Dixon", "Ramos", "Reyes", "Burns", "Gordon", "Shaw", "Holmes", "Rice", "Robertson", "Hunt", "Black", "Daniels", "Palmer", "Mills", "Nichols", "Grant", "Knight", "Ferguson", "Rose", "Stone", "Hawkins", "Dunn", "Perkins", "Hudson", "Spencer", "Gardner", "Stephens", "Payne", "Pierce", "Berry", "Matthews", "Arnold", "Wagner", "Willis", "Ray", "Watkins", "Olson", "Carroll", "Duncan", "Snyder", "Hart", "Cunningham", "Bradley", "Lane", "Andrews", "Ruiz", "Harper", "Fox", "Riley", "Armstrong", "Carpenter", "Weaver", "Greene", "Lawrence", "Elliott", "Chavez", "Sims", "Austin", "Peters", "Kelley", "Franklin", "Lawson", "Fields", "Gutierrez", "Ryan", "Schmidt", "Carr", "Vasquez", "Castillo", "Wheeler", "Chapman", "Oliver", "Montgomery", "Richards", "Williamson", "Johnston", "Banks", "Meyer", "Bishop", "McCoy", "Howell", "Alvarez", "Morrison", "Hansen", "Fernandez", "Garza", "Harvey", "Little", "Burton", "Stanley", "Nguyen", "George", "Jacobs", "Reid", "Kim", "Fuller", "Lynch", "Dean", "Gilbert", "Garrett", "Romero", "Welch", "Larson", "Frazier", "Burke", "Hanson", "Day", "Mendoza", "Moreno", "Bowman", "Medina", "Fowler", "Brewer", "Hoffman", "Carlson", "Silva", "Pearson", "Holland", "Douglas", "Fleming", "Jensen", "Vargas", "Byrd", "Davidson", "Hopkins", "May", "Terry", "Herrera", "Wade", "Soto", "Walters", "Curtis", "Neal", "Caldwell", "Lowe", "Jennings", "Barnett", "Graves", "Jimenez", "Horton", "Shelton", "Barrett", "Obrien", "Castro", "Sutton", "Gregory", "McKinney", "Lucas", "Miles", "Craig", "Rodriquez", "Chambers", "Holt", "Lambert", "Fletcher", "Watts", "Bates", "Hale", "Rhodes", "Pena", "Beck", "Newman", "Haynes", "McDaniel", "Mendez", "Bush", "Vaughn", "Parks", "Dawson", "Santiago", "Norris", "Hardy", "Love", "Steele", "Curry", "Powers", "Schultz", "Barker", "Guzman", "Page", "Munoz", "Ball", "Keller", "Chandler", "Weber", "Leonard", "Walsh", "Lyons", "Ramsey", "Wolfe", "Schneider", "Mullins", "Benson", "Sharp", "Bowen", "Daniel", "Barber", "Cummings", "Hines", "Baldwin", "Griffith", "Valdez", "Hubbard", "Salazar", "Reeves", "Warner"]
+)
+    else:
+        return random.choice(nombres_masculinos) + " " + random.choice(["Little", "Gregory", "Williamson", "Harmon", "Huang", "Burns", "Dennis", "Roberts", "Beck", "Schmidt", "Turner", "Reed", "Hayes", "Hicks", "Crawford", "Henry", "Mason", "Gordon", "Graham", "Foster", "Wallace", "Griffin", "Russell", "Peters", "Hamilton", "Reynolds", "Fisher", "Ellis", "Harrison", "Gibson", "McDonald", "Cruz", "Marshall", "Ortiz", "Gomez", "Murray", "Freeman", "Wells", "Webb", "Simpson", "Stevens", "Tucker", "Porter", "Hunter", "Hicks", "Crawford", "Boyd", "Mason", "Morales", "Kennedy", "Warren", "Dixon", "Ramos", "Reyes", "Burns", "Gordon", "Shaw", "Holmes", "Rice", "Robertson", "Hunt", "Black", "Daniels", "Palmer", "Mills", "Nichols", "Grant", "Knight", "Ferguson", "Rose", "Stone", "Hawkins", "Dunn", "Perkins", "Hudson", "Spencer", "Gardner", "Stephens", "Payne", "Pierce", "Berry", "Matthews", "Arnold", "Wagner", "Willis", "Ray", "Watkins", "Olson", "Carroll", "Duncan", "Snyder", "Hart", "Cunningham", "Bradley", "Lane", "Andrews", "Ruiz", "Harper", "Fox", "Riley", "Armstrong", "Carpenter", "Weaver", "Greene", "Lawrence", "Elliott", "Chavez", "Sims", "Austin", "Peters", "Kelley", "Franklin", "Lawson", "Fields", "Gutierrez", "Ryan", "Schmidt", "Carr", "Vasquez", "Castillo", "Wheeler", "Chapman", "Oliver", "Montgomery", "Richards", "Williamson", "Johnston", "Banks", "Meyer", "Bishop", "McCoy", "Howell", "Alvarez", "Morrison", "Hansen", "Fernandez", "Garza", "Harvey", "Little", "Burton", "Stanley", "Nguyen", "George", "Jacobs", "Reid", "Kim", "Fuller", "Lynch", "Dean", "Gilbert", "Garrett", "Romero", "Welch", "Larson", "Frazier", "Burke", "Hanson", "Day", "Mendoza", "Moreno", "Bowman", "Medina", "Fowler", "Brewer", "Hoffman", "Carlson", "Silva", "Pearson", "Holland", "Douglas", "Fleming", "Jensen", "Vargas", "Byrd", "Davidson", "Hopkins", "May", "Terry", "Herrera", "Wade", "Soto", "Walters", "Curtis", "Neal", "Caldwell", "Lowe", "Jennings", "Barnett", "Graves", "Jimenez", "Horton", "Shelton", "Barrett", "Obrien", "Castro", "Sutton", "Gregory", "McKinney", "Lucas", "Miles", "Craig", "Rodriquez", "Chambers", "Holt", "Lambert", "Fletcher", "Watts", "Bates", "Hale", "Rhodes", "Pena", "Beck", "Newman", "Haynes", "McDaniel", "Mendez", "Bush", "Vaughn", "Parks", "Dawson", "Santiago", "Norris", "Hardy", "Love", "Steele", "Curry", "Powers", "Schultz", "Barker", "Guzman", "Page", "Munoz", "Ball", "Keller", "Chandler", "Weber", "Leonard", "Walsh", "Lyons", "Ramsey", "Wolfe", "Schneider", "Mullins", "Benson", "Sharp", "Bowen", "Daniel", "Barber", "Cummings", "Hines", "Baldwin", "Griffith", "Valdez", "Hubbard", "Salazar", "Reeves", "Warner"]
+)
+
+def procesar_archivos(carpeta):
+    leads_final = []
+    telefonos_vistos = set()
+
+    for archivo in os.listdir(carpeta):
+        if archivo.endswith(".csv") and "leads_profesionales_" in archivo:
+            with open(os.path.join(carpeta, archivo), mode="r", encoding="utf-8") as f:
+                reader = csv.DictReader(f, delimiter=";")
+                for row in reader:
+                    tel = row["Teléfono"]
+                    if tel not in telefonos_vistos:
+                        if not tiene_nombre_real(row["Nombre"]):
+                            row["Nombre"] = generar_nombre_ficticio(row["Rubro"])
+                        leads_final.append(row)
+                        telefonos_vistos.add(tel)
+    
+    if leads_final:
+        with open("leads_unificados_corregidos.csv", mode="w", encoding="utf-8", newline="") as f_out:
+            writer = csv.DictWriter(f_out, fieldnames=leads_final[0].keys(), delimiter=";")
+            writer.writeheader()
+            writer.writerows(leads_final)
+        print(f"✅ Exportado leads_unificados_corregidos.csv con {len(leads_final)} contactos únicos.")
+    else:
+        print("⚠️ No se encontraron leads válidos.")
+
+procesar_archivos(carpeta)
