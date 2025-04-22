@@ -127,37 +127,40 @@ def scrap_empresas_googlemaps():
             yield f"data:  Error ejecutando script: {str(e)}\n\n"
 
     return Response(generar_logs(), mimetype='text/event-stream')
-
 @app.route('/unificar_excel')
 @login_required
 def unificar_excel():
+    import pandas as pd
     import glob
+    import os
 
+    usuario = session.get("usuario")
     output_folder = os.path.abspath("output")
-    all_excels = glob.glob(os.path.join(output_folder, "*.xlsx"))
-    if not all_excels:
-        return "⚠️ No hay archivos Excel para unificar."
+    user_excels = glob.glob(os.path.join(output_folder, f"{usuario}_*.xlsx"))
 
-    all_dfs = []
-    for file in all_excels:
+    if not user_excels:
+        return "<h3 style='text-align:center; margin-top:40px;'>⚠️ No hay archivos para unificar.<br><br><a href='/dashboard'>Volver</a></h3>"
+
+    dfs = []
+    for file in user_excels:
         try:
             df = pd.read_excel(file)
             df["Archivo Origen"] = os.path.basename(file)
-            if "usuario" not in df.columns:
-                df["usuario"] = session.get("usuario")
-            all_dfs.append(df)
+            df["usuario"] = usuario
+            dfs.append(df)
         except Exception as e:
             print(f"Error leyendo {file}: {e}")
 
-    final_df = pd.concat(all_dfs, ignore_index=True)
+    final_df = pd.concat(dfs, ignore_index=True)
     final_path = os.path.join("static", "empresas_unificadas.xlsx")
     final_df.to_excel(final_path, index=False)
 
-    for file in all_excels:
+    # 🔥 BORRA los individuales
+    for file in user_excels:
         try:
             os.remove(file)
-        except:
-            pass
+        except Exception as e:
+            print(f"No se pudo borrar {file}: {e}")
 
     return send_from_directory('static', 'empresas_unificadas.xlsx', as_attachment=True)
 
@@ -193,6 +196,11 @@ def enviar_masivo():
         return render_template("attack.html", mensaje=mensaje, telefonos=telefonos[:50])
 
     return render_template("attack.html", mensaje="", telefonos=telefonos[:50])
+
+@app.route('/attack')
+@login_required
+def attack():
+    return render_template('attack.html')
 
 @app.route('/ver_tabla')
 @login_required
